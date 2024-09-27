@@ -225,18 +225,26 @@
             mostrarLoading(true); // Exibir mensagem de carregamento
             document.getElementById('mensagemResultados').style.display = 'none'; // Oculta a mensagem de resultados
 
+            // Iniciar a sequência de pontos na mensagem de carregamento
+            let contador = 0;
+            const loadingInterval = setInterval(() => {
+                contador = (contador + 1) % 4; // Ciclar entre 0 e 3
+                document.getElementById('loadingMessage').innerText = `Pesquisando${'.'.repeat(contador)}`; // Atualiza a mensagem
+            }, 1000); // Atualiza a cada 1 segundo
+
             gapi.client.init({
                 'apiKey': API_KEY,
-            }).then(function () {
-                return gapi.client.request({
-                    'path': `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${RANGE}`,
+                'discoveryDocs': ['https://sheets.googleapis.com/$discovery/rest?version=v4']
+            }).then(() => {
+                return gapi.client.sheets.spreadsheets.values.get({
+                    spreadsheetId: SPREADSHEET_ID,
+                    range: RANGE,
                 });
-            }).then(function (response) {
-                const dados = response.result.values;
-                const resultados = dados.filter(row => row[campoIndex(campo)] && row[campoIndex(campo)].toString().toLowerCase().includes(valor.toLowerCase()));
-
+            }).then((response) => {
+                clearInterval(loadingInterval); // Para a sequência de pontos
+                const resultados = response.result.values || [];
                 mostrarResultados(resultados);
-            }, function (reason) {
+            }).catch(function (reason) {
                 console.error('Error: ' + reason.result.error.message);
                 mostrarLoading(false); // Ocultar mensagem de carregamento
             });
@@ -264,7 +272,7 @@
                 resultados.forEach((linha, index) => {
                     const tr = document.createElement('tr');
                     tr.classList.add('expandable');
-                    tr.onclick = () => mostrarDetalhes(tr, linha);
+                    tr.onclick = () => mostrarDetalhes(tr, linha); // Passa a linha e os dados
                     tr.innerHTML = `<td>${linha[1]}</td>
                                     <td>${linha[2]}</td>
                                     <td>${linha[3]}</td>
@@ -285,6 +293,15 @@
         }
 
         function mostrarDetalhes(tr, linha) {
+            // Ocultar detalhes de todas as outras linhas
+            const todasAsLinhas = document.querySelectorAll('.expandable');
+            todasAsLinhas.forEach(linha => {
+                if (linha !== tr) {
+                    linha.classList.remove('hidden'); // Oculta outras linhas
+                    if (linha.lastChild) linha.removeChild(linha.lastChild); // Remove detalhes
+                }
+            });
+
             const detalhesExibidos = tr.classList.toggle('hidden'); // Alternar a classe hidden
 
             if (detalhesExibidos) {
@@ -300,8 +317,8 @@
                                       Medidor: ${linha[8]}<br>
                                       Cta.contrato: ${linha[9]}<br>
                                       Nome do leiturista: ${linha[10]}<br>
-                                      Latitude: ${linha[12]}<br>
-                                      Longitude: ${linha[13]}`;
+                                      Latitude: ${linha[11]}<br>
+                                      Longitude: ${linha[12]}`; // Ajustado para os índices corretos
                 tr.appendChild(detalhes);
             } else {
                 tr.removeChild(tr.lastChild); // Remove detalhes
@@ -313,8 +330,8 @@
         }
 
         function logout() {
-            // Redirecionar para a página de logout
-            window.location.href = 'sair.html'; // Altere para o URL da sua página de logout
+            // Redirecionar para a página inicial
+            window.location.href = 'index.html'; // Redireciona para index.html
         }
 
         document.getElementById('btnPesquisar').onclick = pesquisarDados;
@@ -324,8 +341,8 @@
             const tabelaCorpo = document.getElementById('tabelaCorpo').children;
 
             for (const row of tabelaCorpo) {
-                const lat = parseFloat(row.children[12].innerText);
-                const lng = parseFloat(row.children[13].innerText);
+                const lat = parseFloat(row.children[11].innerText); // Ajustado para o índice correto
+                const lng = parseFloat(row.children[12].innerText); // Ajustado para o índice correto
                 if (!isNaN(lat) && !isNaN(lng)) {
                     markers.push({lat, lng, data: row.children});
                 }

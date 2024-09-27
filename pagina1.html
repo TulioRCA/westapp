@@ -277,13 +277,14 @@
             if (exibir) {
                 loadingMessage.innerHTML = 'Pesquisando.';
                 let i = 0;
-                const interval = setInterval(() => {
+                loadingMessage.interval = setInterval(() => {
                     loadingMessage.innerHTML += '.';
-                    i++;
-                    if (i === 3) {
-                        clearInterval(interval);
+                    if (loadingMessage.innerHTML.length > 15) { // Limite para a quantidade de pontos
+                        loadingMessage.innerHTML = 'Pesquisando.'; // Reseta a mensagem
                     }
                 }, 1000);
+            } else {
+                clearInterval(loadingMessage.interval); // Limpa o intervalo quando não está mais exibindo
             }
         }
 

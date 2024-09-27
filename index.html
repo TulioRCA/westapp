@@ -1,12 +1,129 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Meu Site no GitHub Pages</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Planilha</title>
 </head>
 <body>
-  <h1>Bem-vindo ao meu site!</h1>
-  <p>Este é um exemplo simples no GitHub Pages.</p>
+    <h1>Login</h1>
+    
+    <form id="loginForm">
+        <label for="nome">Nome:</label>
+        <input type="text" id="nome" name="nome" required><br><br>
+
+        <label for="senha">Senha:</label>
+        <input type="password" id="senha" name="senha" required><br><br>
+
+        <input type="submit" value="Entrar">
+    </form>
+
+    <div id="mensagem"></div>
+    <div id="cadastro" style="display: none;">
+        <h2>Cadastro de Novo Usuário</h2>
+        <form id="cadastroForm">
+            <label for="nomeNovo">Nome:</label>
+            <input type="text" id="nomeNovo" name="nomeNovo" required><br><br>
+
+            <label for="senhaNova">Senha:</label>
+            <input type="password" id="senhaNova" name="senhaNova" required><br><br>
+
+            <label for="acessoNovo">Acesso:</label>
+            <input type="text" id="acessoNovo" name="acessoNovo" required><br><br>
+
+            <input type="submit" value="Cadastrar">
+        </form>
+    </div>
+
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script>
+        // Chave de API e ID da planilha
+        const API_KEY = 'AIzaSyCkX_303fRmSS_paRcBW49zlz8gwAlA3LQ';
+        const SPREADSHEET_ID = '1yKJOJwmMbw36a3yYSTLGapYmRmRH1b8eNq6w0JgMnLc';
+        const RANGE = 'ACESSOS!A2:C'; // Ajuste para sua aba "ACESSOS"
+
+        // Função para autenticar o usuário
+        function autenticar(nome, senha) {
+            gapi.client.init({
+                'apiKey': API_KEY,
+            }).then(function () {
+                return gapi.client.request({
+                    'path': `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${RANGE}`,
+                });
+            }).then(function (response) {
+                const dados = response.result.values;
+                let usuarioAutenticado = false;
+                let isAdmin = false;
+
+                dados.forEach(function(row) {
+                    if (row[0] === nome && row[1] === senha) {
+                        usuarioAutenticado = true;
+                        if (row[2] === 'ADM01') {
+                            isAdmin = true;
+                        }
+                    }
+                });
+
+                const mensagem = document.getElementById('mensagem');
+                if (usuarioAutenticado) {
+                    mensagem.innerHTML = 'Login bem-sucedido!';
+                    if (isAdmin) {
+                        document.getElementById('cadastro').style.display = 'block';
+                        mensagem.innerHTML += ' Você é um administrador!';
+                    }
+                } else {
+                    mensagem.innerHTML = 'Nome ou senha incorretos!';
+                }
+            }, function (error) {
+                console.error('Erro: ' + error.result.error.message);
+            });
+        }
+
+        // Função para cadastrar novo usuário
+        function cadastrarUsuario(nomeNovo, senhaNova, acessoNovo) {
+            const range = 'ACESSOS!A2'; // A partir da linha 2
+
+            const novoUsuario = {
+                range: range,
+                values: [[nomeNovo, senhaNova, acessoNovo]],
+            };
+
+            gapi.client.init({
+                'apiKey': API_KEY,
+            }).then(function () {
+                return gapi.client.sheets.spreadsheets.values.append({
+                    spreadsheetId: SPREADSHEET_ID,
+                    range: range,
+                    valueInputOption: 'RAW',
+                    resource: novoUsuario,
+                });
+            }).then(function (response) {
+                const mensagem = document.getElementById('mensagem');
+                mensagem.innerHTML = 'Novo usuário cadastrado com sucesso!';
+            }, function (error) {
+                console.error('Erro ao cadastrar: ' + error.result.error.message);
+            });
+        }
+
+        // Iniciar a API do Google quando a página for carregada
+        gapi.load('client', function () {
+            const loginForm = document.getElementById('loginForm');
+            loginForm.addEventListener('submit', function (event) {
+                event.preventDefault();
+                const nome = document.getElementById('nome').value;
+                const senha = document.getElementById('senha').value;
+                autenticar(nome, senha);
+            });
+
+            const cadastroForm = document.getElementById('cadastroForm');
+            cadastroForm.addEventListener('submit', function (event) {
+                event.preventDefault();
+                const nomeNovo = document.getElementById('nomeNovo').value;
+                const senhaNova = document.getElementById('senhaNova').value;
+                const acessoNovo = document.getElementById('acessoNovo').value;
+                cadastrarUsuario(nomeNovo, senhaNova, acessoNovo);
+            });
+        });
+    </script>
 </body>
 </html>

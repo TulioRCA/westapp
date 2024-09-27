@@ -65,6 +65,7 @@
         #mensagem {
             margin-top: 10px;
             color: red;
+            text-align: center; /* Centraliza o texto da mensagem */
         }
 
         #cadastro {
@@ -84,9 +85,10 @@
         <input type="password" id="senha" name="senha" required><br>
 
         <input type="submit" value="Entrar">
+        
+        <div id="mensagem"></div> <!-- Mensagem dentro do formulário -->
     </form>
 
-    <div id="mensagem"></div>
     <div id="cadastro">
         <h2>Cadastro de Novo Usuário</h2>
         <form id="cadastroForm">
@@ -133,6 +135,7 @@
                 });
 
                 const mensagem = document.getElementById('mensagem');
+                mensagem.innerHTML = ''; // Limpa a mensagem antes de mostrar
                 if (usuarioAutenticado) {
                     if (isAdmin) {
                         // Se for admin, abra a página de cadastro

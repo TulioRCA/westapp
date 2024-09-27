@@ -36,15 +36,14 @@
 
         .logout {
             position: absolute;
-            top: 10px; /* Mudado para não ficar em cima do título */
-            right: 10px; /* Ajustado para ser menor */
+            top: 10px; /* Diminuído para melhor visualização em celulares */
+            right: 10px;
             background-color: #d32f2f; /* Vermelho para logout */
             color: white;
             border: none;
-            padding: 5px 10px; /* Reduzido para ser menor */
+            padding: 5px 10px; /* Diminuído */
             border-radius: 4px;
             cursor: pointer;
-            font-size: 12px; /* Tamanho da fonte reduzido */
         }
 
         label {
@@ -68,16 +67,7 @@
             border: none;
             cursor: pointer;
             margin-top: 10px;
-            display: inline-block; /* Para permitir o lado a lado */
-            transition: width 0.3s; /* Transição suave para a mudança de largura */
-        }
-
-        input[type="button"]#btnPesquisar {
-            width: 100%; /* Inicialmente 100% do tamanho */
-        }
-
-        input[type="button"].small {
-            width: 48%; /* Tamanho reduzido para 50% */
+            width: 100%; /* Tamanho igual às caixas de texto */
         }
 
         input[type="button"]:hover {
@@ -122,28 +112,6 @@
             cursor: pointer; /* Muda o cursor para indicar que pode ser clicado */
         }
 
-        .map-container {
-            display: none; /* Inicialmente oculto */
-            width: 100%;
-            height: 400px; /* Altura do mapa */
-            margin-top: 20px;
-            position: relative;
-        }
-
-        .map-button {
-            display: none; /* Inicialmente oculto */
-            width: 48%; /* Tamanho igual ao botão pesquisar */
-            background-color: #4caf50; /* Verde */
-            color: white;
-            border: none;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-
-        .map-button:hover {
-            background-color: #45a049; /* Verde escuro no hover */
-        }
-
         @media (max-width: 600px) {
             .container {
                 padding: 10px; /* Reduzir padding em telas menores */
@@ -178,9 +146,8 @@
         <input type="text" id="valorPesquisa" placeholder="Digite o valor para pesquisar...">
 
         <input type="button" value="Pesquisar" id="btnPesquisar">
-        <input type="button" value="Mapa" id="btnMapa" class="map-button">
 
-        <div id="loadingMessage" class="loading" style="display: none;">Pesquisando.</div>
+        <div id="loadingMessage" class="loading" style="display: none;"></div>
 
         <table id="resultadoTabela" style="display: none;">
             <thead>
@@ -201,12 +168,8 @@
         </table>
 
         <div id="mensagemResultados" class="no-results" style="display: none;"></div>
-        
-        <div id="mapContainer" class="map-container">
-            <button id="btnMaximizeMap" style="position: absolute; top: 10px; right: 10px;">Maximizar</button>
-            <div id="map" style="width: 100%; height: 100%;"></div>
-            <button id="btnShowTable" class="map-button" style="margin-top: 10px;">Ver Tabela</button>
-        </div>
+
+        <input type="button" value="Mapa" id="btnMapa" style="display: none;">
     </div>
 
     <script src="https://apis.google.com/js/api.js"></script>
@@ -215,8 +178,14 @@
         const SPREADSHEET_ID = '1yKJOJwmMbw36a3yYSTLGapYmRmRH1b8eNq6w0JgMnLc';
         const RANGE = 'DADOS!A2:O'; // Ajuste para sua aba "DADOS"
 
-        // O botão Mapa é inicialmente oculto
-        document.getElementById('btnMapa').style.display = 'none';
+        let worker;
+
+        if (typeof(Worker) !== "undefined") {
+            worker = new Worker("worker.js");
+            worker.onmessage = function(e) {
+                mostrarResultados(e.data);
+            };
+        }
 
         function pesquisarDados() {
             const campo = document.getElementById('campoPesquisa').value;
@@ -225,149 +194,132 @@
             mostrarLoading(true); // Exibir mensagem de carregamento
             document.getElementById('mensagemResultados').style.display = 'none'; // Oculta a mensagem de resultados
 
-            // Iniciar a sequência de pontos na mensagem de carregamento
-            let loadingInterval = setInterval(() => {
-                const loadingMessage = document.getElementById('loadingMessage');
-                loadingMessage.innerText = 'Pesquisando' + '.'.repeat((loadingMessage.innerText.match(/\./g) || []).length % 3 + 1);
-            }, 1000);
-
-            gapi.load('client', () => {
-                gapi.client.init({
-                    apiKey: API_KEY,
-                    discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4']
-                }).then(() => {
-                    return gapi.client.sheets.spreadsheets.values.get({
-                        spreadsheetId: SPREADSHEET_ID,
-                        range: RANGE,
-                    });
-                }).then((response) => {
-                    clearInterval(loadingInterval); // Para a sequência de pontos
-                    const resultados = response.result.values || [];
-                    mostrarResultados(resultados);
-                }).catch(function (reason) {
-                    console.error('Error: ' + reason.result.error.message);
-                    mostrarLoading(false); // Ocultar mensagem de carregamento
+            gapi.client.init({
+                'apiKey': API_KEY,
+            }).then(function () {
+                return gapi.client.request({
+                    'path': `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${RANGE}`,
                 });
+            }).then(function (response) {
+                const dados = response.result.values;
+                worker.postMessage({dados, campo, valor}); // Envia dados para o worker
+            }, function (error) {
+                console.error('Erro: ' + error.result.error.message);
+                mostrarLoading(false); // Ocultar mensagem de carregamento em caso de erro
             });
         }
 
         function mostrarResultados(resultados) {
             const tabelaCorpo = document.getElementById('tabelaCorpo');
-            tabelaCorpo.innerHTML = ''; // Limpa resultados anteriores
+            tabelaCorpo.innerHTML = '';
 
-            if (resultados.length === 0) {
-                document.getElementById('mensagemResultados').innerText = 'Nenhum resultado encontrado.';
-                document.getElementById('mensagemResultados').style.display = 'block';
-                document.getElementById('btnMapa').style.display = 'none'; // Oculta o botão Mapa
-                document.getElementById('btnPesquisar').style.width = '100%'; // Volta o tamanho do botão pesquisar para 100%
-            } else {
-                resultados.forEach((linha) => {
+            mostrarLoading(false); // Ocultar mensagem de carregamento
+
+            if (resultados.length > 0) {
+                resultados.forEach(row => {
                     const tr = document.createElement('tr');
                     tr.classList.add('expandable');
-                    tr.onclick = () => mostrarDetalhes(tr, linha); // Passa a linha e os dados
-                    tr.innerHTML = `<td>${linha[1]}</td>
-                                    <td>${linha[2]}</td>
-                                    <td>${linha[3]}</td>
-                                    <td>${linha[4]}</td>
-                                    <td>${linha[5]}</td>
-                                    <td>${linha[6]}</td>
-                                    <td>${linha[7]}</td>
-                                    <td>${linha[8]}</td>
-                                    <td>${linha[9]}</td>
-                                    <td>${linha[10]}</td>`;
+                    tr.innerHTML = `
+                        <td>${row[1]}</td>
+                        <td>${row[2]}</td>
+                        <td>${row[3]}</td>
+                        <td>${row[4]}</td>
+                        <td>${row[5]}</td>
+                        <td>${row[6]}</td>
+                        <td>${row[9]}</td>
+                        <td>${row[10]}</td>
+                        <td>${row[11]}</td>
+                        <td>${row[12]}</td>
+                    `;
+                    tr.onclick = () => mostrarDetalhes(tr, row);
                     tabelaCorpo.appendChild(tr);
                 });
-                document.getElementById('resultadoTabela').style.display = 'table'; // Exibir tabela
+                document.getElementById('resultadoTabela').style.display = 'table';
                 document.getElementById('btnMapa').style.display = 'inline-block'; // Exibir botão Mapa
-                document.getElementById('btnPesquisar').style.width = '48%'; // Reduz o tamanho do botão pesquisar para 50%
+            } else {
+                document.getElementById('mensagemResultados').innerText = 'Nenhum resultado encontrado.';
+                document.getElementById('mensagemResultados').style.display = 'block';
+                document.getElementById('resultadoTabela').style.display = 'none';
+                document.getElementById('btnMapa').style.display = 'none'; // Ocultar botão Mapa
             }
-            mostrarLoading(false); // Ocultar mensagem de carregamento
         }
 
-        function mostrarDetalhes(tr, linha) {
-            // Ocultar detalhes de todas as outras linhas
-            const todasAsLinhas = document.querySelectorAll('.expandable');
-            todasAsLinhas.forEach(linha => {
-                if (linha !== tr) {
-                    linha.classList.remove('hidden'); // Oculta outras linhas
-                    if (linha.lastChild) linha.removeChild(linha.lastChild); // Remove detalhes
-                }
-            });
+        function mostrarDetalhes(tr, row) {
+            const detalhesExistem = tr.classList.toggle('hidden');
+            const detalhes = tr.querySelector('.detalhes');
 
-            const detalhesExibidos = tr.classList.toggle('hidden'); // Alternar a classe hidden
-
-            if (detalhesExibidos) {
-                const detalhes = document.createElement('div');
-                detalhes.innerHTML = `<strong>Detalhes:</strong><br>
-                                      Instalação: ${linha[1]}<br>
-                                      Nome do cliente: ${linha[2]}<br>
-                                      Local: ${linha[3]}<br>
-                                      Bairro: ${linha[4]}<br>
-                                      Rua: ${linha[5]}<br>
-                                      Nº da casa: ${linha[6]}<br>
-                                      Poste: ${linha[7]}<br>
-                                      Medidor: ${linha[8]}<br>
-                                      Cta.contrato: ${linha[9]}<br>
-                                      Nome do leiturista: ${linha[10]}<br>`;
-                tr.appendChild(detalhes);
+            if (!detalhesExistem) {
+                const detalhesDiv = document.createElement('div');
+                detalhes.classList.add('detalhes');
+                detalhes.innerHTML = `
+                    <strong>Detalhes:</strong><br>
+                    Instalação: ${row[1]}<br>
+                    Nome do cliente: ${row[2]}<br>
+                    Local: ${row[3]}<br>
+                    Bairro: ${row[4]}<br>
+                    Rua: ${row[5]}<br>
+                    Nº da casa: ${row[6]}<br>
+                    Poste: ${row[7]}<br>
+                    Medidor: ${row[8]}<br>
+                    Cta.contrato: ${row[9]}<br>
+                    Nome do leiturista: ${row[10]}<br>
+                `;
+                tr.appendChild(detalhesDiv);
             } else {
-                tr.removeChild(tr.lastChild); // Remove detalhes
+                tr.removeChild(detalhes);
             }
         }
 
         function mostrarLoading(exibir) {
-            document.getElementById('loadingMessage').style.display = exibir ? 'block' : 'none';
+            const loadingMessage = document.getElementById('loadingMessage');
+            loadingMessage.style.display = exibir ? 'block' : 'none';
+
+            if (exibir) {
+                loadingMessage.innerHTML = 'Pesquisando.';
+                let i = 0;
+                const interval = setInterval(() => {
+                    loadingMessage.innerHTML += '.';
+                    i++;
+                    if (i === 3) {
+                        clearInterval(interval);
+                    }
+                }, 1000);
+            }
         }
 
         function logout() {
-            // Redirecionar para a página inicial
-            window.location.href = 'index.html'; // Redireciona para index.html
+            window.location.href = 'index.html'; // Redireciona para a página inicial
         }
 
-        document.getElementById('btnPesquisar').onclick = pesquisarDados;
-
-        document.getElementById('btnMapa').onclick = function() {
-            const markers = [];
-            const tabelaCorpo = document.getElementById('tabelaCorpo').children;
-
-            for (const row of tabelaCorpo) {
-                const lat = parseFloat(row.children[11].innerText); // Ajustado para o índice correto
-                const lng = parseFloat(row.children[12].innerText); // Ajustado para o índice correto
-                if (!isNaN(lat) && !isNaN(lng)) {
-                    markers.push({lat, lng, data: row.children});
-                }
-            }
-
-            initMap(markers); // Inicializa o mapa com os marcadores
+        document.getElementById('btnPesquisar').onclick = function() {
+            pesquisarDados();
+            this.style.width = '50%'; // Diminuir o botão "Pesquisar" após clicar
+            document.getElementById('valorPesquisa').value = ''; // Limpa a caixa de texto após pesquisa
         };
 
-        function initMap(markers) {
-            document.getElementById('mapContainer').style.display = 'block'; // Exibe o mapa
-            const map = L.map('map').setView([markers[0].lat, markers[0].lng], 13); // Inicializa o mapa
+        // Reduzindo resultados
+        worker.onmessage = function(e) {
+            const limit = 30; // Limitar a 30 resultados
+            const resultadosLimitados = e.data.slice(0, limit);
+            mostrarResultados(resultadosLimitados);
+        };
+    </script>
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '© OpenStreetMap'
-            }).addTo(map);
+    <!-- Web Worker -->
+    <script>
+        // worker.js
+        self.onmessage = function(e) {
+            const { dados, campo, valor } = e.data;
+            const resultados = [];
 
-            markers.forEach(marker => {
-                const markerInstance = L.marker([marker.lat, marker.lng]).addTo(map);
-                markerInstance.on('click', () => {
-                    const dadosCliente = Array.from(marker.data).map(td => td.innerText).join('<br>');
-                    markerInstance.bindPopup(dadosCliente).openPopup();
-                });
+            dados.forEach(row => {
+                if (row[0] === campo && row[1].includes(valor)) {
+                    resultados.push(row);
+                }
             });
 
-            document.getElementById('btnMaximizeMap').onclick = function() {
-                document.getElementById('mapContainer').style.display = 'block'; // Exibe o mapa
-                document.getElementById('resultadoTabela').style.display = 'none'; // Oculta a tabela
-            };
-
-            document.getElementById('btnShowTable').onclick = function() {
-                document.getElementById('mapContainer').style.display = 'none'; // Oculta o mapa
-                document.getElementById('resultadoTabela').style.display = 'table'; // Exibe a tabela
-            };
-        }
+            self.postMessage(resultados);
+        };
     </script>
 </body>
 </html>

@@ -25,6 +25,7 @@
             width: 100%;
             max-width: 800px;
             box-sizing: border-box;
+            position: relative; /* Para posicionar o botão "Sair" */
         }
 
         h1 {
@@ -81,8 +82,9 @@
 
         th, td {
             border: 1px solid #4caf50; /* Borda verde */
-            padding: 8px;
+            padding: 6px; /* Menor padding para texto menor */
             text-align: left;
+            font-size: 14px; /* Tamanho da fonte reduzido */
         }
 
         th {
@@ -94,6 +96,12 @@
             text-align: center;
             color: red; /* Vermelho para destacar a mensagem */
             margin-top: 20px;
+        }
+
+        .loading {
+            text-align: center;
+            color: #388e3c; /* Verde escuro para a mensagem de carregamento */
+            margin-top: 10px;
         }
 
         @media (max-width: 600px) {
@@ -108,9 +116,9 @@
     </style>
 </head>
 <body>
-    <button class="logout" onclick="logout()">Sair</button>
     <div class="container">
         <h1>LocalizadorGEO</h1>
+        <button class="logout" onclick="logout()">Sair</button>
         <label for="campoPesquisa">Pesquisar por:</label>
         <select id="campoPesquisa">
             <option value="MRU">MRU</option>
@@ -130,6 +138,8 @@
         <input type="text" id="valorPesquisa" placeholder="Digite o valor para pesquisar...">
 
         <input type="button" value="Pesquisar" id="btnPesquisar">
+
+        <div id="loadingMessage" class="loading" style="display: none;">Pesquisando.</div>
 
         <table id="resultadoTabela" style="display: none;">
             <thead>
@@ -168,6 +178,8 @@
             const campo = document.getElementById('campoPesquisa').value;
             const valor = document.getElementById('valorPesquisa').value;
 
+            mostrarLoading(true); // Exibir mensagem de carregamento
+
             gapi.client.init({
                 'apiKey': API_KEY,
             }).then(function () {
@@ -181,6 +193,7 @@
                 mostrarResultados(resultados);
             }, function (error) {
                 console.error('Erro: ' + error.result.error.message);
+                mostrarLoading(false); // Ocultar mensagem de carregamento em caso de erro
             });
         }
 
@@ -201,6 +214,8 @@
             const mensagemResultados = document.getElementById('mensagemResultados');
             mensagemResultados.style.display = 'none'; // Oculta a mensagem de resultados
 
+            mostrarLoading(false); // Ocultar mensagem de carregamento
+
             if (resultados.length > 0) {
                 resultados.forEach(row => {
                     const tr = document.createElement('tr');
@@ -219,16 +234,32 @@
             }
         }
 
+        function mostrarLoading(exibir) {
+            const loadingMessage = document.getElementById('loadingMessage');
+            if (exibir) {
+                loadingMessage.style.display = 'block';
+                loadingMessage.textContent = 'Pesquisando.';
+                let pontos = '';
+                setInterval(() => {
+                    pontos += '.';
+                    if (pontos.length > 3) pontos = ''; // Reseta os pontos
+                    loadingMessage.textContent = `Pesquisando${pontos}`;
+                }, 500);
+            } else {
+                loadingMessage.style.display = 'none';
+            }
+        }
+
         document.getElementById('btnPesquisar').addEventListener('click', pesquisarDados);
 
         function logout() {
-            // Aqui você pode adicionar a lógica para deslogar o usuário
-            alert("Usuário deslogado.");
-            window.location.href = "index.html"; // Redirecionar para a página de login ou outro local
+            // Função de logout
+            window.location.href = 'login.html'; // Substitua pelo URL da sua página de login
         }
 
+        // Iniciar a API do Google quando a página for carregada
         gapi.load('client', function () {
-            // A API será carregada ao abrir a página
+            // Configurações iniciais ou outras chamadas de função se necessário
         });
     </script>
 </body>

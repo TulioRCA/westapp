@@ -112,6 +112,13 @@
             cursor: pointer; /* Muda o cursor para indicar que pode ser clicado */
         }
 
+        #map {
+            width: 100%;
+            height: 400px;
+            margin-top: 20px;
+            display: none; /* Inicialmente oculto */
+        }
+
         @media (max-width: 600px) {
             .container {
                 padding: 10px; /* Reduzir padding em telas menores */
@@ -146,7 +153,6 @@
         <input type="text" id="valorPesquisa" placeholder="Digite o valor para pesquisar...">
 
         <input type="button" value="Pesquisar" id="btnPesquisar">
-
         <div id="loadingMessage" class="loading" style="display: none;">Pesquisando.</div>
 
         <table id="resultadoTabela" style="display: none;">
@@ -168,9 +174,14 @@
         </table>
 
         <div id="mensagemResultados" class="no-results" style="display: none;"></div>
+        <button id="btnVerMapa" style="display: none;">Ver no mapa</button>
+        <div id="map"></div>
     </div>
 
     <script src="https://apis.google.com/js/api.js"></script>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
     <script>
         const API_KEY = 'AIzaSyCkX_303fRmSS_paRcBW49zlz8gwAlA3LQ';
         const SPREADSHEET_ID = '1yKJOJwmMbw36a3yYSTLGapYmRmRH1b8eNq6w0JgMnLc';
@@ -218,10 +229,6 @@
 
             if (resultados.length > 0) {
                 resultados.forEach(row => {
-                    // Verifica se as colunas a serem ocultadas estão vazias
-                    const complemento = row[7] ? row[7] : '';
-                    const siglaEdificio = row[8] ? row[8] : '';
-
                     const tr = document.createElement('tr');
                     tr.classList.add('expandable');
                     tr.innerHTML = `
@@ -240,15 +247,16 @@
                     tabelaCorpo.appendChild(tr);
                 });
                 document.getElementById('resultadoTabela').style.display = 'table';
+                document.getElementById('btnVerMapa').style.display = 'block'; // Mostra o botão "Ver no mapa"
             } else {
                 document.getElementById('mensagemResultados').innerText = 'Nenhum resultado encontrado.';
                 document.getElementById('mensagemResultados').style.display = 'block';
                 document.getElementById('resultadoTabela').style.display = 'none';
+                document.getElementById('btnVerMapa').style.display = 'none'; // Oculta o botão "Ver no mapa"
             }
         }
 
         function mostrarDetalhes(tr, row) {
-            // Adiciona ou remove detalhes ao clicar na linha
             const detalhes = tr.nextElementSibling;
             if (detalhes && detalhes.classList.contains('hidden')) {
                 detalhes.classList.remove('hidden');
@@ -285,6 +293,31 @@
             document.getElementById('mensagemResultados').style.display = 'none'; // Oculta mensagem ao clicar em pesquisar
             pesquisarDados();
         });
+
+        document.getElementById('btnVerMapa').addEventListener('click', () => {
+            const resultados = Array.from(document.getElementById('tabelaCorpo').children);
+            const firstResult = resultados[0]?.children; // Obter os dados do primeiro resultado
+            if (firstResult) {
+                const latitude = firstResult[13].innerText;
+                const longitude = firstResult[14].innerText;
+                mostrarMapa(latitude, longitude);
+            }
+        });
+
+        function mostrarMapa(lat, lng) {
+            const mapDiv = document.getElementById('map');
+            mapDiv.style.display = 'block'; // Exibe o mapa
+
+            const map = L.map(mapDiv).setView([lat, lng], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
+
+            L.marker([lat, lng]).addTo(map)
+                .bindPopup('Localização encontrada!')
+                .openPopup();
+        }
 
         function logout() {
             // Função de logout

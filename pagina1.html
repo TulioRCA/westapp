@@ -226,37 +226,29 @@
             document.getElementById('mensagemResultados').style.display = 'none'; // Oculta a mensagem de resultados
 
             // Iniciar a sequência de pontos na mensagem de carregamento
-            let contador = 0;
-            const loadingInterval = setInterval(() => {
-                contador = (contador + 1) % 4; // Ciclar entre 0 e 3
-                document.getElementById('loadingMessage').innerText = `Pesquisando${'.'.repeat(contador)}`; // Atualiza a mensagem
-            }, 1000); // Atualiza a cada 1 segundo
+            let loadingInterval = setInterval(() => {
+                const loadingMessage = document.getElementById('loadingMessage');
+                loadingMessage.innerText = 'Pesquisando' + '.'.repeat((loadingMessage.innerText.match(/\./g) || []).length % 3 + 1);
+            }, 1000);
 
-            gapi.client.init({
-                'apiKey': API_KEY,
-                'discoveryDocs': ['https://sheets.googleapis.com/$discovery/rest?version=v4']
-            }).then(() => {
-                return gapi.client.sheets.spreadsheets.values.get({
-                    spreadsheetId: SPREADSHEET_ID,
-                    range: RANGE,
+            gapi.load('client', () => {
+                gapi.client.init({
+                    apiKey: API_KEY,
+                    discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4']
+                }).then(() => {
+                    return gapi.client.sheets.spreadsheets.values.get({
+                        spreadsheetId: SPREADSHEET_ID,
+                        range: RANGE,
+                    });
+                }).then((response) => {
+                    clearInterval(loadingInterval); // Para a sequência de pontos
+                    const resultados = response.result.values || [];
+                    mostrarResultados(resultados);
+                }).catch(function (reason) {
+                    console.error('Error: ' + reason.result.error.message);
+                    mostrarLoading(false); // Ocultar mensagem de carregamento
                 });
-            }).then((response) => {
-                clearInterval(loadingInterval); // Para a sequência de pontos
-                const resultados = response.result.values || [];
-                mostrarResultados(resultados);
-            }).catch(function (reason) {
-                console.error('Error: ' + reason.result.error.message);
-                mostrarLoading(false); // Ocultar mensagem de carregamento
             });
-        }
-
-        function campoIndex(campo) {
-            const campos = [
-                'MRU', 'Instalação', 'Nome do cliente', 'Local', 'Bairro',
-                'Rua', 'Nº da casa', 'Poste', 'Medidor', 'Cta.contrato',
-                'Nome do leiturista', 'Latitude', 'Longitude'
-            ];
-            return campos.indexOf(campo);
         }
 
         function mostrarResultados(resultados) {
@@ -269,7 +261,7 @@
                 document.getElementById('btnMapa').style.display = 'none'; // Oculta o botão Mapa
                 document.getElementById('btnPesquisar').style.width = '100%'; // Volta o tamanho do botão pesquisar para 100%
             } else {
-                resultados.forEach((linha, index) => {
+                resultados.forEach((linha) => {
                     const tr = document.createElement('tr');
                     tr.classList.add('expandable');
                     tr.onclick = () => mostrarDetalhes(tr, linha); // Passa a linha e os dados
@@ -316,9 +308,7 @@
                                       Poste: ${linha[7]}<br>
                                       Medidor: ${linha[8]}<br>
                                       Cta.contrato: ${linha[9]}<br>
-                                      Nome do leiturista: ${linha[10]}<br>
-                                      Latitude: ${linha[11]}<br>
-                                      Longitude: ${linha[12]}`; // Ajustado para os índices corretos
+                                      Nome do leiturista: ${linha[10]}<br>`;
                 tr.appendChild(detalhes);
             } else {
                 tr.removeChild(tr.lastChild); // Remove detalhes
@@ -379,6 +369,5 @@
             };
         }
     </script>
-    <script async defer src="https://apis.google.com/js/api.js"></script>
 </body>
 </html>

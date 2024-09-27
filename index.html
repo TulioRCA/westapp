@@ -3,33 +3,101 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Planilha</title>
+    <title>LocalizadorGEO</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #e8f5e9; /* Verde claro */
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+
+        form {
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        h1 {
+            color: #388e3c; /* Verde escuro */
+            text-align: center; /* Centraliza o texto */
+            margin-bottom: 20px; /* Espaço abaixo do título */
+        }
+
+        label {
+            margin-top: 10px;
+            display: block;
+            color: #333; /* Cor do texto */
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #4caf50; /* Borda verde */
+            border-radius: 4px;
+        }
+
+        input[type="submit"] {
+            background-color: #4caf50; /* Verde */
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        input[type="submit"]:hover {
+            background-color: #45a049; /* Verde escuro no hover */
+        }
+
+        #mensagem {
+            margin-top: 10px;
+            color: red;
+        }
+
+        #cadastro {
+            display: none;
+            margin-top: 20px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Login</h1>
-    
     <form id="loginForm">
+        <h1>LocalizadorGEO</h1>
+        
         <label for="nome">Nome:</label>
-        <input type="text" id="nome" name="nome" required><br><br>
+        <input type="text" id="nome" name="nome" required><br>
 
         <label for="senha">Senha:</label>
-        <input type="password" id="senha" name="senha" required><br><br>
+        <input type="password" id="senha" name="senha" required><br>
 
         <input type="submit" value="Entrar">
     </form>
 
     <div id="mensagem"></div>
-    <div id="cadastro" style="display: none;">
+    <div id="cadastro">
         <h2>Cadastro de Novo Usuário</h2>
         <form id="cadastroForm">
             <label for="nomeNovo">Nome:</label>
-            <input type="text" id="nomeNovo" name="nomeNovo" required><br><br>
+            <input type="text" id="nomeNovo" name="nomeNovo" required><br>
 
             <label for="senhaNova">Senha:</label>
-            <input type="password" id="senhaNova" name="senhaNova" required><br><br>
+            <input type="password" id="senhaNova" name="senhaNova" required><br>
 
             <label for="acessoNovo">Acesso:</label>
-            <input type="text" id="acessoNovo" name="acessoNovo" required><br><br>
+            <input type="text" id="acessoNovo" name="acessoNovo" required><br>
 
             <input type="submit" value="Cadastrar">
         </form>
@@ -66,10 +134,12 @@
 
                 const mensagem = document.getElementById('mensagem');
                 if (usuarioAutenticado) {
-                    mensagem.innerHTML = 'Login bem-sucedido!';
                     if (isAdmin) {
-                        document.getElementById('cadastro').style.display = 'block';
-                        mensagem.innerHTML += ' Você é um administrador!';
+                        // Se for admin, abra a página de cadastro
+                        window.location.href = "pagina1.html";
+                    } else {
+                        mensagem.innerHTML = 'Login bem-sucedido!';
+                        // Aqui você pode redirecionar para outra página ou mostrar uma mensagem
                     }
                 } else {
                     mensagem.innerHTML = 'Nome ou senha incorretos!';

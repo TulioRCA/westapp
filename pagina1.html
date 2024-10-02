@@ -1,1 +1,327 @@
 
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LocalizadorGEO</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #e8f5e9; /* Verde claro */
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 800px;
+            box-sizing: border-box;
+            position: relative; /* Para posicionar o botão "Sair" */
+        }
+
+        h1 {
+            color: #388e3c; /* Verde escuro */
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .logout {
+            position: absolute;
+            top: 10px; /* Diminuído para melhor visualização em celulares */
+            right: 10px;
+            background-color: #d32f2f; /* Vermelho para logout */
+            color: white;
+            border: none;
+            padding: 5px 10px; /* Diminuído */
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        label {
+            display: block;
+            margin-top: 10px;
+            color: #333; /* Cor do texto */
+        }
+
+        select, input[type="text"], input[type="button"] {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #4caf50; /* Borda verde */
+            border-radius: 4px;
+            box-sizing: border-box; /* Garantindo que o padding não afete a largura */
+        }
+
+        input[type="button"] {
+            background-color: #4caf50; /* Verde */
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+            width: 100%; /* Tamanho igual às caixas de texto */
+        }
+
+        input[type="button"]:hover {
+            background-color: #45a049; /* Verde escuro no hover */
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #4caf50; /* Borda verde */
+            padding: 6px; /* Menor padding para texto menor */
+            text-align: left;
+            font-size: 12px; /* Tamanho da fonte reduzido */
+        }
+
+        th {
+            background-color: #388e3c; /* Verde escuro */
+            color: white;
+        }
+
+        .no-results {
+            text-align: center;
+            color: red; /* Vermelho para destacar a mensagem */
+            margin-top: 20px;
+        }
+
+        .loading {
+            text-align: center;
+            color: #388e3c; /* Verde escuro para a mensagem de carregamento */
+            margin-top: 10px;
+        }
+
+        .hidden {
+            display: none; /* Oculta os dados */
+        }
+
+        .expandable {
+            cursor: pointer; /* Muda o cursor para indicar que pode ser clicado */
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px; /* Reduzir padding em telas menores */
+            }
+
+            input[type="text"], select {
+                font-size: 14px; /* Ajustar o tamanho da fonte */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>LocalizadorGEO</h1>
+        <button class="logout" onclick="logout()">Sair</button>
+        <label for="campoPesquisa">Pesquisar por:</label>
+        <select id="campoPesquisa">
+            <option value="MRU">MRU</option>
+            <option value="Instalação">Instalação</option>
+            <option value="Nome do cliente">Nome do cliente</option>
+            <option value="Local">Local</option>
+            <option value="Bairro">Bairro</option>
+            <option value="Rua">Rua</option>
+            <option value="Nº da casa">Nº da casa</option>
+            <option value="Poste">Poste</option>
+            <option value="Medidor">Medidor</option>
+            <option value="Cta.contrato">Cta.contrato</option>
+            <option value="Nome do leiturista">Nome do leiturista</option>
+        </select>
+
+        <label for="valorPesquisa">Digite aqui:</label>
+        <input type="text" id="valorPesquisa" placeholder="Digite o valor para pesquisar...">
+
+        <input type="button" value="Pesquisar" id="btnPesquisar">
+
+        <div id="loadingMessage" class="loading" style="display: none;"></div>
+
+        <table id="resultadoTabela" style="display: none;">
+            <thead>
+                <tr>
+                    <th>Instalação</th>
+                    <th>Nome do cliente</th>
+                    <th>Local</th>
+                    <th>Bairro</th>
+                    <th>Rua</th>
+                    <th>Nº da casa</th>
+                    <th>Poste</th>
+                    <th>Medidor</th>
+                    <th>Cta.contrato</th>
+                    <th>Nome do leiturista</th>
+                </tr>
+            </thead>
+            <tbody id="tabelaCorpo"></tbody>
+        </table>
+
+        <div id="mensagemResultados" class="no-results" style="display: none;"></div>
+
+        <input type="button" value="Mapa" id="btnMapa" style="display: none;">
+    </div>
+
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script>
+        const API_KEY = 'AIzaSyCkX_303fRmSS_paRcBW49zlz8gwAlA3LQ';
+        const SPREADSHEET_ID = '1yKJOJwmMbw36a3yYSTLGapYmRmRH1b8eNq6w0JgMnLc';
+        const RANGE = 'DADOS!A2:O'; // Ajuste para sua aba "DADOS"
+
+        let worker;
+
+        if (typeof(Worker) !== "undefined") {
+            worker = new Worker("worker.js");
+            worker.onmessage = function(e) {
+                mostrarResultados(e.data);
+            };
+        }
+
+        function pesquisarDados() {
+            const campo = document.getElementById('campoPesquisa').value;
+            const valor = document.getElementById('valorPesquisa').value;
+
+            mostrarLoading(true); // Exibir mensagem de carregamento
+            document.getElementById('mensagemResultados').style.display = 'none'; // Oculta a mensagem de resultados
+
+            gapi.client.init({
+                'apiKey': API_KEY,
+            }).then(function () {
+                return gapi.client.request({
+                    'path': `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${RANGE}`,
+                });
+            }).then(function (response) {
+                const dados = response.result.values;
+                worker.postMessage({dados, campo, valor}); // Envia dados para o worker
+            }, function (error) {
+                console.error('Erro: ' + error.result.error.message);
+                mostrarLoading(false); // Ocultar mensagem de carregamento em caso de erro
+            });
+        }
+
+        function mostrarResultados(resultados) {
+            const tabelaCorpo = document.getElementById('tabelaCorpo');
+            tabelaCorpo.innerHTML = '';
+
+            mostrarLoading(false); // Ocultar mensagem de carregamento
+
+            if (resultados.length > 0) {
+                resultados.forEach(row => {
+                    const tr = document.createElement('tr');
+                    tr.classList.add('expandable');
+                    tr.innerHTML = `
+                        <td>${row[1]}</td>
+                        <td>${row[2]}</td>
+                        <td>${row[3]}</td>
+                        <td>${row[4]}</td>
+                        <td>${row[5]}</td>
+                        <td>${row[6]}</td>
+                        <td>${row[9]}</td>
+                        <td>${row[10]}</td>
+                        <td>${row[11]}</td>
+                        <td>${row[12]}</td>
+                    `;
+                    tr.onclick = () => mostrarDetalhes(tr, row);
+                    tabelaCorpo.appendChild(tr);
+                });
+                document.getElementById('resultadoTabela').style.display = 'table';
+                document.getElementById('btnMapa').style.display = 'inline-block'; // Exibir botão Mapa
+            } else {
+                document.getElementById('mensagemResultados').innerText = 'Nenhum resultado encontrado.';
+                document.getElementById('mensagemResultados').style.display = 'block';
+                document.getElementById('resultadoTabela').style.display = 'none';
+                document.getElementById('btnMapa').style.display = 'none'; // Ocultar botão Mapa
+            }
+        }
+
+        function mostrarDetalhes(tr, row) {
+            const detalhesExistem = tr.classList.toggle('hidden');
+            const detalhes = tr.querySelector('.detalhes');
+
+            if (!detalhesExistem) {
+                const detalhesDiv = document.createElement('div');
+                detalhes.classList.add('detalhes');
+                detalhes.innerHTML = `
+                    <strong>Detalhes:</strong><br>
+                    Instalação: ${row[1]}<br>
+                    Nome do cliente: ${row[2]}<br>
+                    Local: ${row[3]}<br>
+                    Bairro: ${row[4]}<br>
+                    Rua: ${row[5]}<br>
+                    Nº da casa: ${row[6]}<br>
+                    Poste: ${row[7]}<br>
+                    Medidor: ${row[8]}<br>
+                    Cta.contrato: ${row[9]}<br>
+                    Nome do leiturista: ${row[10]}<br>
+                `;
+                tr.appendChild(detalhesDiv);
+            } else {
+                tr.removeChild(detalhes);
+            }
+        }
+
+        function mostrarLoading(exibir) {
+            const loadingMessage = document.getElementById('loadingMessage');
+            loadingMessage.style.display = exibir ? 'block' : 'none';
+
+            if (exibir) {
+                loadingMessage.innerHTML = 'Pesquisando.';
+                let i = 0;
+                loadingMessage.interval = setInterval(() => {
+                    loadingMessage.innerHTML += '.';
+                    if (loadingMessage.innerHTML.length > 15) { // Limite para a quantidade de pontos
+                        loadingMessage.innerHTML = 'Pesquisando.'; // Reseta a mensagem
+                    }
+                }, 1000);
+            } else {
+                clearInterval(loadingMessage.interval); // Limpa o intervalo quando não está mais exibindo
+            }
+        }
+
+        function logout() {
+            window.location.href = 'index.html'; // Redireciona para a página inicial
+        }
+
+        document.getElementById('btnPesquisar').onclick = function() {
+            pesquisarDados();
+            this.style.width = '50%'; // Diminuir o botão "Pesquisar" após clicar
+            document.getElementById('valorPesquisa').value = ''; // Limpa a caixa de texto após pesquisa
+        };
+
+        // Reduzindo resultados
+        worker.onmessage = function(e) {
+            const limit = 30; // Limitar a 30 resultados
+            const resultadosLimitados = e.data.slice(0, limit);
+            mostrarResultados(resultadosLimitados);
+        };
+    </script>
+
+    <!-- Web Worker -->
+    <script>
+        // worker.js
+        self.onmessage = function(e) {
+            const { dados, campo, valor } = e.data;
+            const resultados = [];
+
+            dados.forEach(row => {
+                if (row[0] === campo && row[1].includes(valor)) {
+                    resultados.push(row);
+                }
+            });
+
+            self.postMessage(resultados);
+        };
+    </script>
+</body>
+</html>

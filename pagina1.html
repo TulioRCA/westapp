@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -246,82 +245,26 @@
         }
 
         function mostrarDetalhes(tr, row) {
-            const detalhesExistem = tr.classList.toggle('hidden');
-            const detalhes = tr.querySelector('.detalhes');
-
-            if (!detalhesExistem) {
-                const detalhesDiv = document.createElement('div');
-                detalhes.classList.add('detalhes');
-                detalhes.innerHTML = `
-                    <strong>Detalhes:</strong><br>
-                    Instalação: ${row[1]}<br>
-                    Nome do cliente: ${row[2]}<br>
-                    Local: ${row[3]}<br>
-                    Bairro: ${row[4]}<br>
-                    Rua: ${row[5]}<br>
-                    Nº da casa: ${row[6]}<br>
-                    Poste: ${row[7]}<br>
-                    Medidor: ${row[8]}<br>
-                    Cta.contrato: ${row[9]}<br>
-                    Nome do leiturista: ${row[10]}<br>
-                `;
-                tr.appendChild(detalhesDiv);
-            } else {
-                tr.removeChild(detalhes);
-            }
+            const detalhes = `Detalhes:\nInstalação: ${row[1]}\nNome do cliente: ${row[2]}\nLocal: ${row[3]}\nBairro: ${row[4]}\nRua: ${row[5]}\nNº da casa: ${row[6]}\nPoste: ${row[9]}\nMedidor: ${row[10]}\nCta.contrato: ${row[11]}\nNome do leiturista: ${row[12]}`;
+            alert(detalhes);
         }
 
-        function mostrarLoading(exibir) {
+        function mostrarLoading(loading) {
             const loadingMessage = document.getElementById('loadingMessage');
-            loadingMessage.style.display = exibir ? 'block' : 'none';
-
-            if (exibir) {
-                loadingMessage.innerHTML = 'Pesquisando.';
-                let i = 0;
-                loadingMessage.interval = setInterval(() => {
-                    loadingMessage.innerHTML += '.';
-                    if (loadingMessage.innerHTML.length > 15) { // Limite para a quantidade de pontos
-                        loadingMessage.innerHTML = 'Pesquisando.'; // Reseta a mensagem
-                    }
-                }, 1000);
+            if (loading) {
+                loadingMessage.innerText = 'Carregando...';
+                loadingMessage.style.display = 'block';
             } else {
-                clearInterval(loadingMessage.interval); // Limpa o intervalo quando não está mais exibindo
+                loadingMessage.style.display = 'none';
             }
         }
 
+        document.getElementById('btnPesquisar').addEventListener('click', pesquisarDados);
+        
         function logout() {
-            window.location.href = 'index.html'; // Redireciona para a página inicial
+            // Aqui você pode implementar a lógica para logout, caso tenha.
+            alert("Você foi desconectado.");
         }
-
-        document.getElementById('btnPesquisar').onclick = function() {
-            pesquisarDados();
-            this.style.width = '50%'; // Diminuir o botão "Pesquisar" após clicar
-            document.getElementById('valorPesquisa').value = ''; // Limpa a caixa de texto após pesquisa
-        };
-
-        // Reduzindo resultados
-        worker.onmessage = function(e) {
-            const limit = 30; // Limitar a 30 resultados
-            const resultadosLimitados = e.data.slice(0, limit);
-            mostrarResultados(resultadosLimitados);
-        };
-    </script>
-
-    <!-- Web Worker -->
-    <script>
-        // worker.js
-        self.onmessage = function(e) {
-            const { dados, campo, valor } = e.data;
-            const resultados = [];
-
-            dados.forEach(row => {
-                if (row[0] === campo && row[1].includes(valor)) {
-                    resultados.push(row);
-                }
-            });
-
-            self.postMessage(resultados);
-        };
     </script>
 </body>
 </html>

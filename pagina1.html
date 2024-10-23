@@ -176,20 +176,11 @@
     <script>
         const API_KEY = 'AIzaSyALgaqGq5rzumEfTodNZEW-tiAiyJFS3WQ';
         const SPREADSHEET_ID = '1yKJOJwmMbw36a3yYSTLGapYmRmRH1b8eNq6w0JgMnLc';
-        const RANGE = 'DADOS!A2:O'; // Ajuste para sua aba "DADOS"
-
-        let worker;
-
-        if (typeof(Worker) !== "undefined") {
-            worker = new Worker("worker.js");
-            worker.onmessage = function(e) {
-                mostrarResultados(e.data);
-            };
-        }
+        const RANGE = 'DADOS!A2:O'; // Dados da aba "DADOS" até a coluna O
 
         function pesquisarDados() {
             const campo = document.getElementById('campoPesquisa').value;
-            const valor = document.getElementById('valorPesquisa').value;
+            const valor = document.getElementById('valorPesquisa').value.trim();
 
             mostrarLoading(true); // Exibir mensagem de carregamento
             document.getElementById('mensagemResultados').style.display = 'none'; // Oculta a mensagem de resultados
@@ -202,11 +193,23 @@
                 });
             }).then(function (response) {
                 const dados = response.result.values;
-                worker.postMessage({dados, campo, valor}); // Envia dados para o worker
+                const resultadosFiltrados = filtrarDados(dados, campo, valor);
+                mostrarResultados(resultadosFiltrados);
             }, function (error) {
                 console.error('Erro: ' + error.result.error.message);
                 mostrarLoading(false); // Ocultar mensagem de carregamento em caso de erro
             });
+        }
+
+        function filtrarDados(dados, campo, valor) {
+            const campos = {
+                'MRU': 0, 'Instalação': 1, 'Nome do cliente': 2, 'Local': 3,
+                'Bairro': 4, 'Rua': 5, 'Nº da casa': 6, 'Poste': 9,
+                'Medidor': 10, 'Cta.contrato': 11, 'Nome do leiturista': 12
+            };
+
+            const indice = campos[campo];
+            return dados.filter(row => row[indice] && row[indice].toLowerCase().includes(valor.toLowerCase()));
         }
 
         function mostrarResultados(resultados) {
@@ -218,7 +221,6 @@
             if (resultados.length > 0) {
                 resultados.forEach(row => {
                     const tr = document.createElement('tr');
-                    tr.classList.add('expandable');
                     tr.innerHTML = `
                         <td>${row[1]}</td>
                         <td>${row[2]}</td>
@@ -231,39 +233,28 @@
                         <td>${row[11]}</td>
                         <td>${row[12]}</td>
                     `;
-                    tr.onclick = () => mostrarDetalhes(tr, row);
                     tabelaCorpo.appendChild(tr);
                 });
                 document.getElementById('resultadoTabela').style.display = 'table';
-                document.getElementById('btnMapa').style.display = 'inline-block'; // Exibir botão Mapa
+                document.getElementById('btnMapa').style.display = 'inline-block'; // Exibe o botão de Mapa
             } else {
-                document.getElementById('mensagemResultados').innerText = 'Nenhum resultado encontrado.';
+                document.getElementById('mensagemResultados').textContent = 'Nenhum resultado encontrado.';
                 document.getElementById('mensagemResultados').style.display = 'block';
                 document.getElementById('resultadoTabela').style.display = 'none';
-                document.getElementById('btnMapa').style.display = 'none'; // Ocultar botão Mapa
+                document.getElementById('btnMapa').style.display = 'none'; // Oculta o botão de Mapa
             }
         }
 
-        function mostrarDetalhes(tr, row) {
-            const detalhes = `Detalhes:\nInstalação: ${row[1]}\nNome do cliente: ${row[2]}\nLocal: ${row[3]}\nBairro: ${row[4]}\nRua: ${row[5]}\nNº da casa: ${row[6]}\nPoste: ${row[9]}\nMedidor: ${row[10]}\nCta.contrato: ${row[11]}\nNome do leiturista: ${row[12]}`;
-            alert(detalhes);
-        }
-
-        function mostrarLoading(loading) {
+        function mostrarLoading(exibir) {
             const loadingMessage = document.getElementById('loadingMessage');
-            if (loading) {
-                loadingMessage.innerText = 'Carregando...';
-                loadingMessage.style.display = 'block';
-            } else {
-                loadingMessage.style.display = 'none';
-            }
+            loadingMessage.textContent = exibir ? 'Carregando...' : '';
+            loadingMessage.style.display = exibir ? 'block' : 'none';
         }
 
         document.getElementById('btnPesquisar').addEventListener('click', pesquisarDados);
-        
+
         function logout() {
-            // Aqui você pode implementar a lógica para logout, caso tenha.
-            alert("Você foi desconectado.");
+            window.location.href = "login.html"; // Redireciona para a página de login
         }
     </script>
 </body>

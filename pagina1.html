@@ -7,7 +7,7 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #e8f5e9; /* Verde claro */
+            background-color: #e8f5e9;
             margin: 0;
             padding: 20px;
             display: flex;
@@ -25,23 +25,23 @@
             width: 100%;
             max-width: 800px;
             box-sizing: border-box;
-            position: relative; /* Para posicionar o botão "Sair" */
+            position: relative;
         }
 
         h1 {
-            color: #388e3c; /* Verde escuro */
+            color: #388e3c;
             text-align: center;
             margin-bottom: 20px;
         }
 
         .logout {
             position: absolute;
-            top: 10px; /* Diminuído para melhor visualização em celulares */
+            top: 10px;
             right: 10px;
-            background-color: #d32f2f; /* Vermelho para logout */
+            background-color: #d32f2f;
             color: white;
             border: none;
-            padding: 5px 10px; /* Diminuído */
+            padding: 5px 10px;
             border-radius: 4px;
             cursor: pointer;
         }
@@ -49,29 +49,29 @@
         label {
             display: block;
             margin-top: 10px;
-            color: #333; /* Cor do texto */
+            color: #333;
         }
 
         select, input[type="text"], input[type="button"] {
             width: calc(100% - 20px);
             padding: 10px;
             margin-top: 5px;
-            border: 1px solid #4caf50; /* Borda verde */
+            border: 1px solid #4caf50;
             border-radius: 4px;
-            box-sizing: border-box; /* Garantindo que o padding não afete a largura */
+            box-sizing: border-box;
         }
 
         input[type="button"] {
-            background-color: #4caf50; /* Verde */
+            background-color: #4caf50;
             color: white;
             border: none;
             cursor: pointer;
             margin-top: 10px;
-            width: 100%; /* Tamanho igual às caixas de texto */
+            width: 100%;
         }
 
         input[type="button"]:hover {
-            background-color: #45a049; /* Verde escuro no hover */
+            background-color: #45a049;
         }
 
         table {
@@ -81,44 +81,44 @@
         }
 
         th, td {
-            border: 1px solid #4caf50; /* Borda verde */
-            padding: 6px; /* Menor padding para texto menor */
+            border: 1px solid #4caf50;
+            padding: 6px;
             text-align: left;
-            font-size: 12px; /* Tamanho da fonte reduzido */
+            font-size: 12px;
         }
 
         th {
-            background-color: #388e3c; /* Verde escuro */
+            background-color: #388e3c;
             color: white;
         }
 
         .no-results {
             text-align: center;
-            color: red; /* Vermelho para destacar a mensagem */
+            color: red;
             margin-top: 20px;
         }
 
         .loading {
             text-align: center;
-            color: #388e3c; /* Verde escuro para a mensagem de carregamento */
+            color: #388e3c;
             margin-top: 10px;
         }
 
         .hidden {
-            display: none; /* Oculta os dados */
+            display: none;
         }
 
         .expandable {
-            cursor: pointer; /* Muda o cursor para indicar que pode ser clicado */
+            cursor: pointer;
         }
 
         @media (max-width: 600px) {
             .container {
-                padding: 10px; /* Reduzir padding em telas menores */
+                padding: 10px;
             }
 
             input[type="text"], select {
-                font-size: 14px; /* Ajustar o tamanho da fonte */
+                font-size: 14px;
             }
         }
     </style>
@@ -174,16 +174,16 @@
 
     <script src="https://apis.google.com/js/api.js"></script>
     <script>
-        const API_KEY = 'AIzaSyALgaqGq5rzumEfTodNZEW-tiAiyJFS3WQ';
-        const SPREADSHEET_ID = '1yKJOJwmMbw36a3yYSTLGapYmRmRH1b8eNq6w0JgMnLc';
+        const API_KEY = 'SUA_API_KEY_AQUI'; // Coloque sua chave de API aqui
+        const SPREADSHEET_ID = 'SUA_SPREADSHEET_ID_AQUI'; // Coloque o ID da planilha aqui
         const RANGE = 'DADOS!A2:O'; // Dados da aba "DADOS" até a coluna O
 
         function pesquisarDados() {
             const campo = document.getElementById('campoPesquisa').value;
             const valor = document.getElementById('valorPesquisa').value.trim();
 
-            mostrarLoading(true); // Exibir mensagem de carregamento
-            document.getElementById('mensagemResultados').style.display = 'none'; // Oculta a mensagem de resultados
+            mostrarLoading(true); 
+            document.getElementById('mensagemResultados').style.display = 'none'; 
 
             gapi.client.init({
                 'apiKey': API_KEY,
@@ -197,7 +197,7 @@
                 mostrarResultados(resultadosFiltrados);
             }, function (error) {
                 console.error('Erro: ' + error.result.error.message);
-                mostrarLoading(false); // Ocultar mensagem de carregamento em caso de erro
+                mostrarLoading(false); 
             });
         }
 
@@ -216,7 +216,7 @@
             const tabelaCorpo = document.getElementById('tabelaCorpo');
             tabelaCorpo.innerHTML = '';
 
-            mostrarLoading(false); // Ocultar mensagem de carregamento
+            mostrarLoading(false); 
 
             if (resultados.length > 0) {
                 resultados.forEach(row => {
@@ -236,12 +236,12 @@
                     tabelaCorpo.appendChild(tr);
                 });
                 document.getElementById('resultadoTabela').style.display = 'table';
-                document.getElementById('btnMapa').style.display = 'inline-block'; // Exibe o botão de Mapa
+                document.getElementById('btnMapa').style.display = 'inline-block'; 
             } else {
                 document.getElementById('mensagemResultados').textContent = 'Nenhum resultado encontrado.';
                 document.getElementById('mensagemResultados').style.display = 'block';
                 document.getElementById('resultadoTabela').style.display = 'none';
-                document.getElementById('btnMapa').style.display = 'none'; // Oculta o botão de Mapa
+                document.getElementById('btnMapa').style.display = 'none';
             }
         }
 
@@ -254,7 +254,7 @@
         document.getElementById('btnPesquisar').addEventListener('click', pesquisarDados);
 
         function logout() {
-            window.location.href = "login.html"; // Redireciona para a página de login
+            window.location.href = "index.html"; 
         }
     </script>
 </body>

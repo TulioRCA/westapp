@@ -7,14 +7,12 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #e8f5e9;
+            background-color: #e8f5e9; /* Verde claro */
             margin: 0;
             padding: 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            height: 100vh;
-            box-sizing: border-box;
         }
 
         .container {
@@ -24,54 +22,33 @@
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             width: 100%;
             max-width: 800px;
-            box-sizing: border-box;
-            position: relative;
         }
 
         h1 {
-            color: #388e3c;
+            color: #388e3c; /* Verde escuro */
             text-align: center;
-            margin-bottom: 20px;
         }
 
-        .logout {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background-color: #d32f2f;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        label {
-            display: block;
-            margin-top: 10px;
-            color: #333;
-        }
-
-        select, input[type="text"], input[type="button"] {
-            width: calc(100% - 20px);
+        input[type="text"] {
+            width: 100%;
             padding: 10px;
-            margin-top: 5px;
-            border: 1px solid #4caf50;
+            margin-top: 10px;
+            border: 1px solid #4caf50; /* Borda verde */
             border-radius: 4px;
-            box-sizing: border-box;
         }
 
         input[type="button"] {
-            background-color: #4caf50;
+            background-color: #4caf50; /* Verde */
             color: white;
             border: none;
             cursor: pointer;
             margin-top: 10px;
             width: 100%;
+            padding: 10px;
         }
 
         input[type="button"]:hover {
-            background-color: #45a049;
+            background-color: #45a049; /* Verde escuro no hover */
         }
 
         table {
@@ -81,181 +58,95 @@
         }
 
         th, td {
-            border: 1px solid #4caf50;
-            padding: 6px;
+            border: 1px solid #4caf50; /* Borda verde */
+            padding: 8px;
             text-align: left;
-            font-size: 12px;
         }
 
         th {
-            background-color: #388e3c;
+            background-color: #388e3c; /* Verde escuro */
             color: white;
         }
 
         .no-results {
             text-align: center;
-            color: red;
+            color: red; /* Vermelho para destacar a mensagem */
             margin-top: 20px;
-        }
-
-        .loading {
-            text-align: center;
-            color: #388e3c;
-            margin-top: 10px;
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        .expandable {
-            cursor: pointer;
-        }
-
-        @media (max-width: 600px) {
-            .container {
-                padding: 10px;
-            }
-
-            input[type="text"], select {
-                font-size: 14px;
-            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>LocalizadorGEO</h1>
-        <button class="logout" onclick="logout()">Sair</button>
-        <label for="campoPesquisa">Pesquisar por:</label>
-        <select id="campoPesquisa">
-            <option value="MRU">MRU</option>
-            <option value="Instalação">Instalação</option>
-            <option value="Nome do cliente">Nome do cliente</option>
-            <option value="Local">Local</option>
-            <option value="Bairro">Bairro</option>
-            <option value="Rua">Rua</option>
-            <option value="Nº da casa">Nº da casa</option>
-            <option value="Poste">Poste</option>
-            <option value="Medidor">Medidor</option>
-            <option value="Cta.contrato">Cta.contrato</option>
-            <option value="Nome do leiturista">Nome do leiturista</option>
-        </select>
-
-        <label for="valorPesquisa">Digite aqui:</label>
+        <label for="valorPesquisa">Digite aqui para pesquisar:</label>
         <input type="text" id="valorPesquisa" placeholder="Digite o valor para pesquisar...">
-
         <input type="button" value="Pesquisar" id="btnPesquisar">
-
-        <div id="loadingMessage" class="loading" style="display: none;"></div>
-
+        
         <table id="resultadoTabela" style="display: none;">
             <thead>
-                <tr>
-                    <th>Instalação</th>
-                    <th>Nome do cliente</th>
-                    <th>Local</th>
-                    <th>Bairro</th>
-                    <th>Rua</th>
-                    <th>Nº da casa</th>
-                    <th>Poste</th>
-                    <th>Medidor</th>
-                    <th>Cta.contrato</th>
-                    <th>Nome do leiturista</th>
-                </tr>
+                <tr id="cabecalhoTabela"></tr>
             </thead>
             <tbody id="tabelaCorpo"></tbody>
         </table>
 
         <div id="mensagemResultados" class="no-results" style="display: none;"></div>
-
-        <input type="button" value="Mapa" id="btnMapa" style="display: none;">
     </div>
 
-    <script src="https://apis.google.com/js/api.js"></script>
     <script>
-        const API_KEY = 'SUA_API_KEY_AQUI'; // Coloque sua chave de API aqui
-        const SPREADSHEET_ID = 'SUA_SPREADSHEET_ID_AQUI'; // Coloque o ID da planilha aqui
-        const RANGE = 'DADOS!A2:O'; // Dados da aba "DADOS" até a coluna O
+        const URL_DA_TABELA = 'https://raw.githubusercontent.com/TulioRCA/westapp/refs/heads/main/tabela.html';
 
-        function pesquisarDados() {
-            const campo = document.getElementById('campoPesquisa').value;
-            const valor = document.getElementById('valorPesquisa').value.trim();
+        let dadosTabela = []; // Para armazenar os dados da tabela
 
-            mostrarLoading(true); 
-            document.getElementById('mensagemResultados').style.display = 'none'; 
+        async function carregarDados() {
+            const response = await fetch(URL_DA_TABELA);
+            const html = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const tabela = doc.querySelector('table');
 
-            gapi.client.init({
-                'apiKey': API_KEY,
-            }).then(function () {
-                return gapi.client.request({
-                    'path': `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${RANGE}`,
-                });
-            }).then(function (response) {
-                const dados = response.result.values;
-                const resultadosFiltrados = filtrarDados(dados, campo, valor);
-                mostrarResultados(resultadosFiltrados);
-            }, function (error) {
-                console.error('Erro: ' + error.result.error.message);
-                mostrarLoading(false); 
+            // Obter cabeçalhos
+            const cabecalho = tabela.querySelector('thead').querySelectorAll('th');
+            const cabecalhoArray = Array.from(cabecalho).map(th => th.textContent);
+            document.getElementById('cabecalhoTabela').innerHTML = cabecalhoArray.map(item => `<th>${item}</th>`).join('');
+
+            // Obter dados
+            const linhas = tabela.querySelectorAll('tbody tr');
+            dadosTabela = Array.from(linhas).map(linha => {
+                const colunas = linha.querySelectorAll('td');
+                return Array.from(colunas).map(td => td.textContent);
             });
         }
 
-        function filtrarDados(dados, campo, valor) {
-            const campos = {
-                'MRU': 0, 'Instalação': 1, 'Nome do cliente': 2, 'Local': 3,
-                'Bairro': 4, 'Rua': 5, 'Nº da casa': 6, 'Poste': 9,
-                'Medidor': 10, 'Cta.contrato': 11, 'Nome do leiturista': 12
-            };
+        function pesquisarDados() {
+            const valor = document.getElementById('valorPesquisa').value.trim().toLowerCase();
+            const resultadosFiltrados = dadosTabela.filter(row => 
+                row.some(cell => cell.toLowerCase().includes(valor))
+            );
 
-            const indice = campos[campo];
-            return dados.filter(row => row[indice] && row[indice].toLowerCase().includes(valor.toLowerCase()));
+            mostrarResultados(resultadosFiltrados);
         }
 
         function mostrarResultados(resultados) {
             const tabelaCorpo = document.getElementById('tabelaCorpo');
             tabelaCorpo.innerHTML = '';
 
-            mostrarLoading(false); 
-
             if (resultados.length > 0) {
                 resultados.forEach(row => {
                     const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td>${row[1]}</td>
-                        <td>${row[2]}</td>
-                        <td>${row[3]}</td>
-                        <td>${row[4]}</td>
-                        <td>${row[5]}</td>
-                        <td>${row[6]}</td>
-                        <td>${row[9]}</td>
-                        <td>${row[10]}</td>
-                        <td>${row[11]}</td>
-                        <td>${row[12]}</td>
-                    `;
+                    tr.innerHTML = row.map(cell => `<td>${cell}</td>`).join('');
                     tabelaCorpo.appendChild(tr);
                 });
                 document.getElementById('resultadoTabela').style.display = 'table';
-                document.getElementById('btnMapa').style.display = 'inline-block'; 
+                document.getElementById('mensagemResultados').style.display = 'none'; // Oculta a mensagem de resultados
             } else {
                 document.getElementById('mensagemResultados').textContent = 'Nenhum resultado encontrado.';
                 document.getElementById('mensagemResultados').style.display = 'block';
                 document.getElementById('resultadoTabela').style.display = 'none';
-                document.getElementById('btnMapa').style.display = 'none';
             }
         }
 
-        function mostrarLoading(exibir) {
-            const loadingMessage = document.getElementById('loadingMessage');
-            loadingMessage.textContent = exibir ? 'Carregando...' : '';
-            loadingMessage.style.display = exibir ? 'block' : 'none';
-        }
-
         document.getElementById('btnPesquisar').addEventListener('click', pesquisarDados);
-
-        function logout() {
-            window.location.href = "index.html"; 
-        }
+        carregarDados(); // Carregar os dados no início
     </script>
 </body>
 </html>
